@@ -1,6 +1,11 @@
 # Código de ejemplo desde https://docs.python.org/3/howto/sockets.html
 import socket
 import os
+from dotenv import load_dotenv
+
+if not load_dotenv('.env'):
+    print("Cargando variables de entorno por defecto (.env.example).")
+    load_dotenv('.env.example')
 
 # Obtenidos desde entorno del docker-compose.yml
 BIND_IP = os.getenv('SERVER_BIND_IP')
@@ -16,7 +21,7 @@ print(f'Servidor TCP escuchando en {BIND_IP}:{BIND_PORT}', flush=True)
 
 while True:
     conn, addr = serverSocket.accept() # bloquea
-    print(f'Conexión desde {addr}')
+    print(f'Conexión recibida desde {addr}')
     sentence = conn.recv(1024).decode()
     conn.send(sentence.upper().encode())
     conn.close()

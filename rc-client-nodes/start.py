@@ -1,11 +1,16 @@
 # Robado de diapos del curso, RC_U3, diapo 20
 # ─── CLIENTE TCP ────────────────────────────── 
 import socket, os, time
+from dotenv import load_dotenv
+
+if not load_dotenv('.env'):
+    print("Cargando variables de entorno por defecto (.env.example).")
+    load_dotenv('.env.example')
 
 # Obtenidos desde entorno del docker-compose.yml
 # Ambos son los mismos del servidor
-TARGET_IP = os.getenv('TARGET_IP')
-TARGET_PORT = int(os.getenv('TARGET_PORT'))
+TARGET_IP = os.getenv('CLIENT_TARGET_IP')
+TARGET_PORT = int(os.getenv('CLIENT_TARGET_PORT'))
 
 clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -19,7 +24,7 @@ while True:
         print(f"Conexión fallida a {TARGET_IP}:{TARGET_PORT}")
         time.sleep(2)
 
-sentence = str("holaaaaaa")
+sentence = input('Ingresar mensaje: ')
 print(f"Mensaje enviado: {sentence}")
 clientSocket.send(sentence.encode()) 
 resp = clientSocket.recv(1024) 
