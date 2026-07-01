@@ -216,3 +216,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+#archivos en md del proyecto
+Estructura Proyecto Final - Monitoreo ambiental remoto.md
+fichaProyectoRedes.md
