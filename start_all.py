@@ -4,8 +4,8 @@ from pathlib import Path
 
 DIR_PROYECTO = Path(__file__).resolve().parent # obtiene ruta al directorio de este script
 PYTHON_EXE = sys.executable # obtiene python desde PATH
-PATH_SERVIDOR = DIR_PROYECTO / "scripts" / "servidor.py"
-PATH_CLIENTE = DIR_PROYECTO / "scripts" / "clientes.py"
+PATH_SERVIDOR = DIR_PROYECTO / "src" / "servidor.py"
+PATH_CLIENTE = DIR_PROYECTO / "src" / "clientes.py"
 
 async def main():
   # Subproceso servidor
@@ -26,7 +26,7 @@ async def start_server():
   # Crea tareas en segundo plano para leer el output del servidor en tiempo real
   asyncio.create_task(read_stream(proc.stdout, "[SERVIDOR]"))
   asyncio.create_task(read_stream(proc.stderr, "[SERVIDOR ERR]"))
-
+  
   return proc
 
 # Startup de procesos clientes
