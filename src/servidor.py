@@ -90,7 +90,7 @@ def procesar_mensaje(mensaje: dict, addr) -> dict:
         registrar(f"Mensaje con formato inesperado desde {addr}: {mensaje}")
         return {"valido": False, "motivo": "formato_inesperado"}
 
-    es_valido = validarMensaje(data=data_str, hexdigest=digest, secret_key=SECRET_KEY)
+    es_valido = validarMensaje(data=data_str, hexdigest=digest, secret_key=secret_key)
 
     if not es_valido:
         registrar(f"Firma inválida en mensaje recibido desde {addr} -> se descarta")
