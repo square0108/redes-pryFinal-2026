@@ -67,7 +67,7 @@ def testMensajeFirmado() -> json:
 def mensaje_firmado(lectura: dict) -> dict:
     """Serializa la lectura a JSON y la empaqueta junto a su firma HMAC."""
     lectura_json = json.dumps(lectura)
-    return firmarMensajeJSON(lectura_json, SECRET_KEY)
+    return firmarMensajeJSON(lectura_json, secret_key)
     
 def _mostrar_respuesta(nodo_id: str, respuesta: dict) -> None:
     if not respuesta.get("valido"):

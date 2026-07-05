@@ -90,7 +90,7 @@ def procesar_mensaje(mensaje: dict, addr) -> dict:
         registrar(f"Mensaje con formato inesperado desde {addr}: {mensaje}")
         return {"valido": False, "motivo": "formato_inesperado"}
 
-    es_valido = validarMensaje(data=data_str, hexdigest=digest, secret_key=SECRET_KEY)
+    es_valido = validarMensaje(data=data_str, hexdigest=digest, secret_key=secret_key)
 
     if not es_valido:
         registrar(f"Firma inválida en mensaje recibido desde {addr} -> se descarta")
@@ -128,12 +128,10 @@ def manejar_cliente(conn: socket.socket, addr) -> None:
         while True:
             mensaje, buffer = recibir_json(conn, buffer)
 
-            if mensaje is None:
-                # El cliente cerró la conexión de su lado.
-                registrar(f"Conexión cerrada por {addr}")
-                break
-
             if "error" in mensaje:
+                if mensaje["error"] == "conexion_cerrada":
+                    registrar(f"Conexión cerrada por {addr}")
+                    break
                 # JSON corrupto / mensaje anómalo: se avisa y se sigue
                 # escuchando (no se cae el hilo por un mensaje raro).
                 registrar(f"Mensaje malformado recibido desde {addr}: {mensaje['error']}")
