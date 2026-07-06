@@ -80,8 +80,9 @@ def _mostrar_respuesta(nodo_id: str, respuesta: dict) -> None:
     else:
         print(f"[{nodo_id}] Respuesta del servidor -> sin alertas, todo dentro de rango.")
 
-def simulacion_nodo(nodo_id: str):
+#def simulacion_nodo(nodo_id: str):
     # falta implementar 
 
 if __name__ == "__main__":
-    sendTestMessage()
+    #sendTestMessage()
+    pass

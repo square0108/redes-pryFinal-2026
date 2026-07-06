@@ -38,19 +38,6 @@ def serverLoop() -> None:
         s.bind((HOST, PUERTO)) # enlaza el socket a la dirección y puerto especificados
         s.listen() # pone el socket en modo escucha para aceptar conexiones entrantes
         print(f"Servidor TCP escuchando en {HOST}:{PUERTO}")
-        # s.accept() acepta una conexión entrante y devuelve un nuevo socket y la dirección del cliente
-        conn, addr = s.accept()
-        """
-        with conn: # bloque with para manejar la conexión
-            print(f"Conexión establecida con {addr}") # imprime la dirección del cliente que se conectó
-            while True: # bucle infinito para recibir datos del cliente
-                data=conn.recv(1024) # recibe el mensaje del cliente y lo desbloquea
-                if not data:
-                    break # si no hay datos, rompe el bucle y cierra la conexión
-
-                data = json.loads((data.decode('utf-8'))) # decodificar msj del cliente
-                testValidez(data, conn)
-                """
         try:
             while True:
                 # s.accept() se bloquea hasta que llega una conexión nueva.
@@ -148,7 +135,7 @@ def manejar_cliente(conn: socket.socket, addr) -> None:
 
 """
 def testValidez(msg: json, conn):
-    esValido: bool = validarMensaje(data=msg['data'], hexdigest=msg['digest'], secret_key=secret_key)
+    esValido: bool = validarMensaje(data=msg['data'], hexdigest=msg['digest'], secret_key=SECRET_KEY)
     print(f'Mensaje recibido: {msg}')
     if (esValido):
         t = 'Mensaje válido'
