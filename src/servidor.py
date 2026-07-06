@@ -2,7 +2,7 @@ import socket, os, json, threading, time
 from dotenv import load_dotenv
 from protocolos.validacionMensaje import validarMensaje
 from protocolos.framing import enviar_json, recibir_json
-from sensores import procesar_datos_sensor
+from sensores import procesar_datos_sensor, validar_datos
 from datetime import datetime
 from pathlib import Path
 import db
@@ -98,9 +98,23 @@ def procesar_mensaje(mensaje: dict, addr, conn_db, db_lock) -> dict:
     # A partir de acá confiamos en el contenido, porque la firma coincide.
     try:
         lectura = json.loads(data_str)
-        alertas, acciones, anomalias = procesar_datos_sensor(lectura)
     except (json.JSONDecodeError, KeyError) as e:
         # La firma era válida pero el contenido no tiene la forma esperada.
+        registrar(f"Error al procesar datos desde {addr}: {e}")
+        return {"valido": False, "motivo": "datos_invalidos"}
+
+    invalidos = validar_datos(lectura.get("sensores", {}))
+    if invalidos:
+        registrar(f"Datos físicamente imposibles desde {addr}: {invalidos}")
+        return {
+            "valido": False,
+            "motivo": "datos_fisicamente_invalidos",
+            "invalidos": invalidos,
+        }
+
+    try:
+        alertas, acciones, anomalias = procesar_datos_sensor(lectura)
+    except (json.JSONDecodeError, KeyError) as e:
         registrar(f"Error al procesar datos desde {addr}: {e}")
         return {"valido": False, "motivo": "datos_invalidos"}
 

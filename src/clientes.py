@@ -18,6 +18,7 @@ secret_key = os.getenv('SECRET_KEY')
 # definidas, se usan valores por defecto razonables para una demo o test.
 NUM_NODOS = int(os.getenv('NUM_NODOS', '2'))
 INTERVALO_SEGUNDOS = float(os.getenv('INTERVALO_ENVIO_SEGUNDOS', '5'))
+PROBABILIDAD_FALLO = float(os.getenv('PROBABILIDAD_FALLO', '0.0'))
 """
 Voy a reutilizar esta función 
 def sendTestMessage():
@@ -89,7 +90,7 @@ def simulacion_nodo(nodo_id: str) -> None:
         buffer = b""
         try:
             while True:
-                lectura = generar_datos_sensor(nodo_id)
+                lectura = generar_datos_sensor(nodo_id, PROBABILIDAD_FALLO)
                 enviar_json(sock, mensaje_firmado(lectura))
 
                 sock.settimeout(INTERVALO_SEGUNDOS * 2)
