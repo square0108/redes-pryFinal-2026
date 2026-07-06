@@ -1,10 +1,11 @@
-import socket, os, json, threading
+import socket, os, json, threading, time
 from dotenv import load_dotenv
 from protocolos.validacionMensaje import validarMensaje
 from protocolos.framing import enviar_json, recibir_json
-from sensores import procesar_datos_sensor
+from sensores import procesar_datos_sensor, validar_datos
 from datetime import datetime
 from pathlib import Path
+import db
 
 if not load_dotenv('.env'):
     print("Cargando variables de entorno por defecto (.env.example).")
@@ -14,6 +15,7 @@ if not load_dotenv('.env'):
 HOST = os.getenv('SERVER_BIND_IP')
 PUERTO = int(os.getenv('SERVER_BIND_PORT'))
 secret_key = os.getenv('SECRET_KEY')
+DB_PATH = os.getenv('DB_PATH', 'data/monitoring.db')
 
 # Carpeta donde se guarda la evidencia de lo recibido y procesado
 DIR_LOGS = Path(__file__).resolve().parent.parent / "registros"
@@ -29,13 +31,19 @@ def serverLoop() -> None:
     bloque with para manejar el socket
     el argumento socket.AF_INET indica que se usará IPv4
     AF_INET: Protocolo de Internet versión 4 (IPv4)
-    el argumento socket.SOCK_STREAM indica que se usará TCP 
+    el argumento socket.SOCK_STREAM indica que se usará TCP
     """
+    # Abrir la BD una sola vez y compartirla entre todos los hilos.
+    Path(DB_PATH).parent.mkdir(parents=True, exist_ok=True)
+    conn_db = db.init_db(DB_PATH)
+    db_lock = threading.Lock()
+    print(f"BD SQLite inicializada en {DB_PATH}")
+
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         # Permite volver a levantar el servidor rápido sin que el SO se
         # queje de que el puerto "sigue en uso" (estado TIME_WAIT).
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        s.bind((HOST, PUERTO)) # enlaza el socket a la dirección y puerto especificados
+        s.bind((HOST, PUERTO)) # enlaza el socket a la dirección y puerto especificado
         s.listen() # pone el socket en modo escucha para aceptar conexiones entrantes
         print(f"Servidor TCP escuchando en {HOST}:{PUERTO}")
         try:
@@ -46,11 +54,15 @@ def serverLoop() -> None:
                 # atiende a los que ya estaban conectados.
                 conn, addr = s.accept()
                 hilo = threading.Thread(
-                    target=manejar_cliente, args=(conn, addr), daemon=True
+                    target=manejar_cliente,
+                    args=(conn, addr, conn_db, db_lock),
+                    daemon=True,
                 )
                 hilo.start()
         except KeyboardInterrupt:
             print("\nServidor detenido manualmente (Ctrl+C).")
+        finally:
+            db.cerrar(conn_db)
 
 def registrar(linea: str) -> None:
     """Imprime en consola y además deja constancia en el archivo de log."""
@@ -61,7 +73,7 @@ def registrar(linea: str) -> None:
         with open(ARCHIVO_LOG, "a", encoding="utf-8") as f:
             f.write(linea_completa + "\n")
 
-def procesar_mensaje(mensaje: dict, addr) -> dict:
+def procesar_mensaje(mensaje: dict, addr, conn_db, db_lock) -> dict:
     """
     Valida la firma de `mensaje` y, si corresponde, aplica las reglas de
     negocio sobre la lectura de sensores que trae adentro.
@@ -86,13 +98,44 @@ def procesar_mensaje(mensaje: dict, addr) -> dict:
     # A partir de acá confiamos en el contenido, porque la firma coincide.
     try:
         lectura = json.loads(data_str)
-        alertas, acciones = procesar_datos_sensor(lectura)
     except (json.JSONDecodeError, KeyError) as e:
         # La firma era válida pero el contenido no tiene la forma esperada.
         registrar(f"Error al procesar datos desde {addr}: {e}")
         return {"valido": False, "motivo": "datos_invalidos"}
 
+    invalidos = validar_datos(lectura.get("sensores", {}))
+    if invalidos:
+        registrar(f"Datos físicamente imposibles desde {addr}: {invalidos}")
+        return {
+            "valido": False,
+            "motivo": "datos_fisicamente_invalidos",
+            "invalidos": invalidos,
+        }
+
+    try:
+        alertas, acciones, anomalias = procesar_datos_sensor(lectura)
+    except (json.JSONDecodeError, KeyError) as e:
+        registrar(f"Error al procesar datos desde {addr}: {e}")
+        return {"valido": False, "motivo": "datos_invalidos"}
+
     nodo_id = lectura.get("nodo_id", "desconocido")
+    id_invernadero = _parse_id_invernadero(nodo_id)
+    ts = int(lectura.get("timestamp", time.time()))
+    received_at = int(time.time())
+
+    try:
+        lectura_id = db.insertar_lectura(
+            conn_db, db_lock, id_invernadero, nodo_id, ts, received_at,
+            lectura["sensores"],
+        )
+        for a in anomalias:
+            db.insertar_anomalia(
+                conn_db, db_lock, lectura_id, a["sensor"], a["valor"],
+                ts, a["tipo"], a["descripcion"], received_at,
+            )
+    except Exception as e:
+        registrar(f"Error al persistir en BD desde {addr}: {e}")
+
     registrar(
         f"Lectura válida de '{nodo_id}' desde {addr} -> {lectura['sensores']} "
         f"| Alertas: {alertas if alertas else 'ninguna'}"
@@ -106,7 +149,16 @@ def procesar_mensaje(mensaje: dict, addr) -> dict:
     }
 
 
-def manejar_cliente(conn: socket.socket, addr) -> None:
+def _parse_id_invernadero(nodo_id: str) -> int:
+    """Extrae el id numérico de un nodo_id como 'invernadero-3' -> 3.
+    Si no puede, devuelve -1."""
+    try:
+        return int(nodo_id.split("-")[-1])
+    except (ValueError, IndexError):
+        return -1
+
+
+def manejar_cliente(conn: socket.socket, addr, conn_db, db_lock) -> None:
     # Esta función corre en un hilo por cada conexión aceptada
     registrar(f"Conexión establecida con {addr}")
     buffer = b""
@@ -125,7 +177,7 @@ def manejar_cliente(conn: socket.socket, addr) -> None:
                 enviar_json(conn, {"valido": False, "motivo": mensaje["error"]})
                 continue
 
-            respuesta = procesar_mensaje(mensaje, addr)
+            respuesta = procesar_mensaje(mensaje, addr, conn_db, db_lock)
 
             try:
                 enviar_json(conn, respuesta)

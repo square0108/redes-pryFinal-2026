@@ -220,3 +220,7 @@ __marimo__/
 #archivos en md del proyecto
 Estructura Proyecto Final - Monitoreo ambiental remoto.md
 fichaProyectoRedes.md
+
+# BD local de la simulación
+data/*.db
+data/*.db-*
