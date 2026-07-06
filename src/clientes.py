@@ -80,9 +80,53 @@ def _mostrar_respuesta(nodo_id: str, respuesta: dict) -> None:
     else:
         print(f"[{nodo_id}] Respuesta del servidor -> sin alertas, todo dentro de rango.")
 
-#def simulacion_nodo(nodo_id: str):
-    # falta implementar 
+def simulacion_nodo(nodo_id: str) -> None:
+    """Mantiene una conexión con el server y envía una lectura firmada
+    cada INTERVALO_SEGUNDOS. Si la conexión se cae, se reconecta
+    automáticamente."""
+    while True:
+        sock = conectar_con_reintentos(nodo_id)
+        buffer = b""
+        try:
+            while True:
+                lectura = generar_datos_sensor(nodo_id)
+                enviar_json(sock, mensaje_firmado(lectura))
+
+                sock.settimeout(INTERVALO_SEGUNDOS * 2)
+                mensaje, buffer = recibir_json(sock, buffer)
+
+                if mensaje is None:
+                    continue
+                if "error" in mensaje:
+                    if mensaje["error"] == "conexion_cerrada":
+                        raise ConnectionResetError("server cerró")
+                    continue
+                _mostrar_respuesta(nodo_id, mensaje)
+                time.sleep(INTERVALO_SEGUNDOS)
+        except (BrokenPipeError, ConnectionResetError,
+                ConnectionAbortedError, socket.timeout, OSError) as e:
+            print(f"[{nodo_id}] Conexión perdida ({type(e).__name__}), reintentando...")
+            try: sock.close()
+            except: pass
+        except KeyboardInterrupt:
+            print(f"[{nodo_id}] Cerrando por KeyboardInterrupt...")
+            try: sock.close()
+            except: pass
+            return
 
 if __name__ == "__main__":
-    #sendTestMessage()
-    pass
+    print(f"Levantando {NUM_NODOS} nodos (intervalo {INTERVALO_SEGUNDOS}s)")
+    threads = []
+    for i in range(NUM_NODOS):
+        t = threading.Thread(
+            target=simulacion_nodo,
+            args=(f"invernadero-{i+1}",),
+            daemon=True,
+        )
+        t.start()
+        threads.append(t)
+    try:
+        for t in threads:
+            t.join()
+    except KeyboardInterrupt:
+        print("Apagando nodos (Ctrl+C)...")
