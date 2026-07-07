@@ -1,11 +1,11 @@
 import socket, os, json, threading, time
 from dotenv import load_dotenv
-from protocolos.validacionMensaje import validarMensaje
-from protocolos.framing import enviar_json, recibir_json
-from sensores import procesar_datos_sensor, validar_datos
+from rc_simulacion.protocolos.validacionMensaje import validarMensaje
+from rc_simulacion.protocolos.framing import enviar_json, recibir_json
+from rc_simulacion.sensores import procesar_datos_sensor, validar_datos
 from datetime import datetime
 from pathlib import Path
-import db
+import rc_simulacion.db as db
 
 if not load_dotenv('.env'):
     print("Cargando variables de entorno por defecto (.env.example).")

@@ -3,9 +3,14 @@ import socket
 import threading
 
 # utilizando src como pythonpath
-import clientes
-from protocolos.framing import enviar_json, recibir_json
+from rc_simulacion import clientes
+from rc_simulacion.protocolos.framing import enviar_json, recibir_json
 
+"""
+Este test inicia un servidor dummy mediante una llamada a `dummy_server()`, crea un cliente socket de prueba, y envía un mensaje al servidor.
+El envío y recepción de mensajes utilizan `enviar_json()` y `recibir_json()`.
+El test aprueba sólo si el cliente recibe el eco y verifica los contenidos como los mismos que envió.
+"""
 @pytest.fixture
 def dummy_server(monkeypatch):
     """
@@ -41,10 +46,6 @@ def dummy_server_eco(sv_socket: socket.socket):
         pass
 
 def test_conexion_y_envio_basico(dummy_server):
-    """
-    Inicia el servidor dummy mediante una llamada a `dummy_server()`, crea un cliente socket de prueba, y envía un mensaje al servidor.
-    El test aprueba sólo si el cliente recibe el eco y verifica los contenidos.
-    """
     sv_socket = dummy_server
 
     # Correr servidor en hebra separada

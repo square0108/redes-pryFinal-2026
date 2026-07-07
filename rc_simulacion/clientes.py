@@ -1,8 +1,8 @@
 import socket, os, time, json, threading
 from dotenv import load_dotenv
-from protocolos.validacionMensaje import firmarMensajeJSON
-from protocolos.framing import enviar_json, recibir_json
-from sensores import generar_datos_sensor
+from rc_simulacion.protocolos.validacionMensaje import firmarMensajeJSON
+from rc_simulacion.protocolos.framing import enviar_json, recibir_json
+from rc_simulacion.sensores import generar_datos_sensor
 
 if not load_dotenv('.env'):
     print("Cargando variables de entorno por defecto (.env.example).")
