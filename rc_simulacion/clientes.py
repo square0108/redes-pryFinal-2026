@@ -1,8 +1,8 @@
 import socket, os, time, json, threading
 from dotenv import load_dotenv
-from protocolos.validacionMensaje import firmarMensajeJSON
-from protocolos.framing import enviar_json, recibir_json
-from sensores import generar_datos_sensor
+from rc_simulacion.protocolos.validacionMensaje import firmarMensajeJSON
+from rc_simulacion.protocolos.framing import enviar_json, recibir_json
+from rc_simulacion.sensores import generar_datos_sensor
 
 if not load_dotenv('.env'):
     print("Cargando variables de entorno por defecto (.env.example).")
@@ -19,30 +19,14 @@ secret_key = os.getenv('SECRET_KEY')
 NUM_NODOS = int(os.getenv('NUM_NODOS', '2'))
 INTERVALO_SEGUNDOS = float(os.getenv('INTERVALO_ENVIO_SEGUNDOS', '5'))
 PROBABILIDAD_FALLO = float(os.getenv('PROBABILIDAD_FALLO', '0.0'))
-"""
-Voy a reutilizar esta función 
-def sendTestMessage():
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        while True:  # Reintentar conexión continuamente
-            try:
-                s.connect((HOST, PUERTO))
-                print(f"Conexión exitosa a {HOST}:{PUERTO}")
-                break
-            except ConnectionRefusedError:
-                print(f"Conexión fallida a {HOST}:{PUERTO}")
-                time.sleep(2)
-        
-        # JSON de prueba para probar autenticación de mensajes
-        testMessage = testMensajeFirmado()
-        s.sendall(testMessage.encode('utf-8'))
 
-        data=s.recv(1024) # recibe la respuesta del servidor (eco)
-        data=data.decode('utf-8')
-
-    print("Respuesta de servidor: ", repr(data)) # imprime la respuesta del servidor en formato legible
-"""
 def conectar_con_reintentos(nodo_id: str) -> socket.socket:
-    #Crea el socket TCP y reintenta la conexión hasta lograrla.
+    """
+    Utilizando las variables de entorno de .env, reintenta la conexión a HOST:PUERTO cada 2 segundos hasta tener éxito.
+
+    :param nodo_id: str: Identifica al socket cliente **en los logs** de la simulación.
+    :returns socket.socket: Socket del **cliente** que utiliza para conectarse al servidor.
+    """
     while True:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:

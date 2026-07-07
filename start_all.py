@@ -4,8 +4,8 @@ from pathlib import Path
 
 DIR_PROYECTO = Path(__file__).resolve().parent
 PYTHON_EXE = sys.executable
-PATH_SERVIDOR = DIR_PROYECTO / "src" / "servidor.py"
-PATH_CLIENTE = DIR_PROYECTO / "src" / "clientes.py"
+PATH_SERVIDOR = DIR_PROYECTO / "rc_simulacion" / "servidor.py"
+PATH_CLIENTE = DIR_PROYECTO / "rc_simulacion" / "clientes.py"
 
 
 def parse_args() -> argparse.Namespace:
@@ -79,7 +79,6 @@ async def run(args) -> int:
 
     env = {
         **os.environ,
-        "PYTHONPATH": str(DIR_PROYECTO / "src"),
         "NUM_NODOS": str(args.num_nodos),
         "INTERVALO_ENVIO_SEGUNDOS": str(args.intervalo_seg),
         "PROBABILIDAD_FALLO": str(args.probabilidad_fallo),
