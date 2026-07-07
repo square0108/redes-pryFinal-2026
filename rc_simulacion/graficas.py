@@ -13,7 +13,7 @@ guardando en la base de datos SQLite.
 Este script es independiente del servidor: se ejecuta DESPUÉS de correr
 una simulación.
 Uso:
-    python src/graficos.py
+    python -m rc_simulacion.graficas
 Genera, por cada variable ambiental, un gráfico de líneas con una serie
 por cada invernadero (nodo_id), y además un gráfico de barras con el
 conteo de anomalías detectadas por sensor. Todo se guarda como PNG.
