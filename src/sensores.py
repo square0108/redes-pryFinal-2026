@@ -103,7 +103,7 @@ def procesar_datos_sensor(datos):
             "descripcion": "Temperatura alta - Activar ventilación",
         })
 
-    if sensores["humedad_suelo"] < 30:
+    if sensores["humedad_suelo"] < 20:
         alertas.append("Humedad de suelo baja - Activar riego")
         acciones.append("ACTIVAR_RIEGO")
         anomalias.append({
