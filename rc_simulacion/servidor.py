@@ -1,5 +1,5 @@
 import socket, os, json, threading, time
-from dotenv import load_dotenv
+from rc_simulacion._env import load_env_file
 from rc_simulacion.protocolos.validacionMensaje import validarMensaje
 from rc_simulacion.protocolos.framing import enviar_json, recibir_json
 from rc_simulacion.sensores import procesar_datos_sensor, validar_datos
@@ -7,15 +7,20 @@ from datetime import datetime
 from pathlib import Path
 import rc_simulacion.db as db
 
-if not load_dotenv('.env'):
-    print("Cargando variables de entorno por defecto (.env.example).")
-    load_dotenv('.env.example')
+load_env_file()
 
 #direccion del servidor en una IP
 HOST = os.getenv('SERVER_BIND_IP')
 PUERTO = int(os.getenv('SERVER_BIND_PORT'))
 secret_key = os.getenv('SECRET_KEY')
 DB_PATH = os.getenv('DB_PATH', 'data/monitoring.db')
+
+# IDs de invernadero permitidos. Mensajes con nodo_id cuyo id numérico no
+# esté en este set son rechazados sin procesarse. Mitiga el riesgo #12
+# de la ficha: "recibir datos intercambiados de un invernadero a otro".
+NODOS_PERMITIDOS = frozenset(
+    int(x) for x in os.getenv('NODOS_PERMITIDOS', '1,2,3').split(',') if x.strip()
+)
 
 # Carpeta donde se guarda la evidencia de lo recibido y procesado
 DIR_LOGS = Path(__file__).resolve().parent.parent / "registros"
@@ -103,6 +108,20 @@ def procesar_mensaje(mensaje: dict, addr, conn_db, db_lock) -> dict:
         registrar(f"Error al procesar datos desde {addr}: {e}")
         return {"valido": False, "motivo": "datos_invalidos"}
 
+    nodo_id = lectura.get("nodo_id", "desconocido")
+    id_invernadero = _parse_id_invernadero(nodo_id)
+    if id_invernadero not in NODOS_PERMITIDOS:
+        registrar(
+            f"nodo_id no registrado desde {addr}: '{nodo_id}' (id={id_invernadero}), "
+            f"permitidos={sorted(NODOS_PERMITIDOS)}"
+        )
+        return {
+            "valido": False,
+            "motivo": "nodo_id_no_registrado",
+            "nodo_id": nodo_id,
+            "nodos_permitidos": sorted(NODOS_PERMITIDOS),
+        }
+
     invalidos = validar_datos(lectura.get("sensores", {}))
     if invalidos:
         registrar(f"Datos físicamente imposibles desde {addr}: {invalidos}")
@@ -118,8 +137,6 @@ def procesar_mensaje(mensaje: dict, addr, conn_db, db_lock) -> dict:
         registrar(f"Error al procesar datos desde {addr}: {e}")
         return {"valido": False, "motivo": "datos_invalidos"}
 
-    nodo_id = lectura.get("nodo_id", "desconocido")
-    id_invernadero = _parse_id_invernadero(nodo_id)
     ts = int(lectura.get("timestamp", time.time()))
     received_at = int(time.time())
 

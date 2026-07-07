@@ -1,12 +1,10 @@
 import socket, os, time, json, threading
-from dotenv import load_dotenv
+from rc_simulacion._env import load_env_file
 from rc_simulacion.protocolos.validacionMensaje import firmarMensajeJSON
 from rc_simulacion.protocolos.framing import enviar_json, recibir_json
 from rc_simulacion.sensores import generar_datos_sensor
 
-if not load_dotenv('.env'):
-    print("Cargando variables de entorno por defecto (.env.example).")
-    load_dotenv('.env.example')
+load_env_file()
 
 # Cargar IP y puerto desde archivo de variables de entorno '.env.example', para mayor configurabilidad.
 HOST = os.getenv('CLIENT_TARGET_IP') # ojo, debe ser la ip del servidor, no la del cliente
