@@ -2,3 +2,4 @@ cffi==2.0.0
 cryptography==49.0.0
 pycparser==3.0
 python-dotenv==1.2.2
+matplotlib==3.10.8
